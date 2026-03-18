@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+.next/
+out/
+
+# Config (contains secrets)
+config.yaml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads & temp
+uploads/
+/tmp/interview_coach/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Test
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Lock files (keep uv.lock and pnpm-lock.yaml)
+package-lock.json
+yarn.lock

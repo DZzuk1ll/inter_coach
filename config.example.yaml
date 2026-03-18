@@ -1,0 +1,18 @@
+database:
+  url: postgresql+asyncpg://interview_coach:password@localhost:5433/interview_coach
+
+# Embedding API (knowledge base vectorization, configured by deployer)
+embedding:
+  base_url: https://api.siliconflow.cn/v1
+  api_key: sk-xxx
+  model: BAAI/bge-large-zh-v1.5
+
+# GitHub API token (optional, increases rate limit to 5000 req/hr)
+github:
+  token: ""
+
+# Application
+app:
+  secret_key: change-me
+  max_zip_size_mb: 50
+  temp_dir: /tmp/interview_coach

@@ -1,0 +1,56 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: interview_coach_db
+    environment:
+      POSTGRES_USER: interview_coach
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: interview_coach
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U interview_coach"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: interview_coach_backend
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - upload_tmp:/tmp/interview_coach
+    environment:
+      - PYTHONUNBUFFERED=1
+    profiles:
+      - deploy
+
+  frontend:
+    build: ./frontend
+    container_name: interview_coach_frontend
+    depends_on:
+      - backend
+    profiles:
+      - deploy
+
+  nginx:
+    image: nginx:alpine
+    container_name: interview_coach_nginx
+    depends_on:
+      - backend
+      - frontend
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    profiles:
+      - deploy
+
+volumes:
+  pgdata:
+  upload_tmp:
