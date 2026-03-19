@@ -16,3 +16,5 @@ app:
   secret_key: change-me
   max_zip_size_mb: 50
   temp_dir: /tmp/interview_coach
+  cors_origins:
+    - http://localhost:3000

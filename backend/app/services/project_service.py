@@ -81,6 +81,25 @@ async def delete_project(
     return True
 
 
+async def _update_step(
+    project_id: uuid.UUID,
+    step_message: str,
+    progress: int,
+) -> None:
+    """Update the analysis step message and progress percentage."""
+    async with async_session_factory() as db:
+        result = await db.execute(
+            select(Project).where(Project.id == project_id)
+        )
+        project = result.scalar_one()
+        project.analysis_result = {
+            **(project.analysis_result or {}),
+            "step_message": step_message,
+            "progress": progress,
+        }
+        await db.commit()
+
+
 async def run_analysis_task(
     project_id: uuid.UUID,
     llm_config: LLMConfig,
@@ -103,6 +122,7 @@ async def run_analysis_task(
             )
             project = result.scalar_one()
             project.analysis_status = "analyzing"
+            project.analysis_result = {"step_message": "正在读取代码仓库...", "progress": 10}
             await db.commit()
 
         await log.ainfo("analysis_task_start", project_id=str(project_id))
@@ -113,8 +133,12 @@ async def run_analysis_task(
         else:
             repo_content = await read_zip(source_ref)
 
+        await _update_step(project_id, "正在解析简历...", 30)
+
         # Step 2: Parse resume
         resume_profile = await parse_resume(resume_text, llm_client)
+
+        await _update_step(project_id, "正在分析代码结构...", 50)
 
         # Step 3: Run analysis
         analysis_result = await run_analysis(
@@ -125,12 +149,16 @@ async def run_analysis_task(
             llm_client=llm_client,
         )
 
+        await _update_step(project_id, "正在生成面试题目...", 85)
+
         # Step 4: Save result
         async with async_session_factory() as db:
             result = await db.execute(
                 select(Project).where(Project.id == project_id)
             )
             project = result.scalar_one()
+            analysis_result["step_message"] = "分析完成"
+            analysis_result["progress"] = 100
             project.analysis_result = analysis_result
             project.analysis_status = "completed"
             await db.commit()

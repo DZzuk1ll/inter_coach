@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 
 interface ChatInputProps {
   onSend: (content: string) => void;
@@ -27,23 +26,45 @@ export function ChatInput({ onSend, disabled, loading }: ChatInputProps) {
     }
   };
 
+  const canSend = !disabled && !loading && content.trim().length > 0;
+
   return (
-    <div className="flex gap-2">
-      <Textarea
+    <div
+      className="flex items-end gap-2 rounded-md p-1.5"
+      style={{
+        background: "var(--surface-secondary)",
+        border: "1px solid var(--border-default)",
+      }}
+    >
+      <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder={disabled ? "面试已结束" : "输入你的回答... (Shift+Enter 换行)"}
         disabled={disabled || loading}
         rows={2}
-        className="resize-none"
+        className="flex-1 resize-none border-0 bg-transparent px-2 py-1.5 text-[13px] leading-relaxed outline-none placeholder:text-[13px] disabled:cursor-not-allowed disabled:opacity-50"
+        style={{
+          color: "var(--foreground)",
+          fontFamily: "var(--font-geist-sans), sans-serif",
+        }}
       />
       <Button
         onClick={handleSend}
-        disabled={disabled || loading || !content.trim()}
-        className="self-end"
+        disabled={!canSend}
+        size="sm"
+        className="shrink-0"
       >
-        {loading ? "发送中..." : "发送"}
+        {loading ? (
+          <span className="flex items-center gap-1">
+            <svg className="animate-spin h-3 w-3" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="20 20" />
+            </svg>
+            发送中
+          </span>
+        ) : (
+          "发送"
+        )}
       </Button>
     </div>
   );

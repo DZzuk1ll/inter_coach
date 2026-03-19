@@ -9,13 +9,17 @@
 - **四阶段面试模拟**：项目概述 → 技术深挖 → 设计决策 → 压力追问，含追问机制和代码引用
 - **面试方法论 RAG**：基于 MIT/DDI/PMaps 等真实来源的方法论知识库，隐式驱动面试官行为
 - **匿名使用**：无需注册，自动生成 UUID；LLM API Key 由用户自行配置，不经服务端存储
+- **Light/Dark 双主题**：跟随系统偏好或手动切换，基于 CSS 变量设计系统
+- **流式对话输出**：面试对话支持 SSE 流式响应，实时展示面试官回复
+- **面试复盘报告**：面试结束后生成多维度评分 + 改进建议
+- **简历优化建议**：基于代码分析结果为简历提供针对性修改建议
 
 ## 技术栈
 
 | 层级 | 技术 |
 |------|------|
-| 后端 | FastAPI · SQLAlchemy 2.0 (async) · Alembic · openai SDK · LangChain RAG · PyMuPDF · httpx · structlog |
-| 前端 | Next.js 14+ (App Router) · TypeScript · TailwindCSS · shadcn/ui · TanStack Query · react-hook-form + zod |
+| 后端 | FastAPI · SQLAlchemy 2.0 (async) · Alembic · openai SDK · LangChain RAG · PyMuPDF · httpx · structlog · pytest |
+| 前端 | Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · shadcn/ui · TanStack Query · react-hook-form + zod · next-themes |
 | 数据库 | PostgreSQL 16 + pgvector |
 | 部署 | Docker Compose · Nginx |
 | 包管理 | uv (Python) · pnpm (前端) |
@@ -25,7 +29,7 @@
 ### 前置条件
 
 - Docker & Docker Compose
-- Python 3.12+、[uv](https://docs.astral.sh/uv/)
+- Python 3.13+、[uv](https://docs.astral.sh/uv/)
 - Node.js 20+、pnpm
 
 ### 1. 启动数据库
@@ -80,6 +84,8 @@ app:
   secret_key: change-me
   max_zip_size_mb: 50
   temp_dir: /tmp/interview_coach
+  cors_origins:                 # 允许的前端域名列表
+    - http://localhost:3000
 ```
 
 ## 项目结构
@@ -125,7 +131,9 @@ POST   /api/projects/:id/interviews        # 开始面试
 GET    /api/interviews                     # 面试历史
 GET    /api/interviews/:id                 # 面试详情
 POST   /api/interviews/:id/messages        # 发送回答
+POST   /api/interviews/:id/messages/stream # 发送回答（SSE 流式）
 POST   /api/interviews/:id/end             # 结束面试
+GET    /api/projects/:id/resume-advice     # 简历优化建议
 
 POST   /api/admin/knowledge/ingest         # 导入知识库
 ```
@@ -138,3 +146,12 @@ docker compose --profile deploy up --build
 ```
 
 全部服务（数据库 + 后端 + 前端 + Nginx）通过 80 端口对外提供服务。
+
+## 测试
+
+```bash
+cd backend
+uv run pytest -v                          # 运行全部 30 个测试
+```
+
+测试使用 SQLite 内存数据库 + mock LLM，覆盖：用户系统、项目生命周期、面试流程（创建→发消息→结束）、权限隔离。

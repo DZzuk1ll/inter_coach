@@ -35,6 +35,7 @@ export interface ProjectListItem {
 export interface AnalysisStatus {
   status: string;
   message: string;
+  progress: number;
 }
 
 export interface Interview {
@@ -72,4 +73,19 @@ export interface LLMConfig {
   baseUrl: string;
   apiKey: string;
   model: string;
+}
+
+export interface ReviewDimension {
+  key: string;
+  label: string;
+  score: number;
+  comment: string;
+}
+
+export interface ReviewReport {
+  dimensions: ReviewDimension[];
+  overall_score: number;
+  summary: string;
+  strengths: string[];
+  improvements: string[];
 }

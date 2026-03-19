@@ -29,6 +29,7 @@ export function isLLMConfigured(): boolean {
 }
 
 export const LLM_PRESETS: Record<string, Partial<LLMConfig>> = {
+  MiniMax: { baseUrl: "https://api.minimaxi.com/v1", model: "MiniMax-M2.7" },
   OpenAI: { baseUrl: "https://api.openai.com/v1", model: "gpt-4o" },
   DeepSeek: { baseUrl: "https://api.deepseek.com", model: "deepseek-chat" },
   SiliconFlow: { baseUrl: "https://api.siliconflow.cn/v1", model: "Qwen/Qwen3-8B" },

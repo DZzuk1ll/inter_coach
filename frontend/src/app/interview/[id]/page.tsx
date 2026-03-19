@@ -16,7 +16,14 @@ import {
 import { ChatInput } from "@/components/interview/chat-input";
 import { ChatMessage } from "@/components/interview/chat-message";
 import { PhaseIndicator } from "@/components/interview/phase-indicator";
-import { useEndInterview, useInterview, useSendMessage } from "@/hooks/use-interviews";
+import { ReviewReportView } from "@/components/interview/review-report";
+import {
+  useEndInterview,
+  useInterview,
+  useSendMessage,
+  useSendMessageStream,
+} from "@/hooks/use-interviews";
+import type { ReviewReport } from "@/types";
 
 export default function InterviewPage() {
   const params = useParams();
@@ -24,6 +31,7 @@ export default function InterviewPage() {
 
   const { data: interview, isLoading } = useInterview(id);
   const sendMessage = useSendMessage(id);
+  const { send: sendStream, streamingContent, isStreaming } = useSendMessageStream(id);
   const endInterview = useEndInterview(id);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -32,20 +40,40 @@ export default function InterviewPage() {
   }, [interview?.messages]);
 
   if (isLoading) {
-    return <div className="text-center py-12 text-gray-500">加载中...</div>;
+    return (
+      <div
+        className="text-center py-12 text-sm"
+        style={{ color: "var(--foreground-muted)" }}
+      >
+        加载中...
+      </div>
+    );
   }
 
   if (!interview) {
-    return <div className="text-center py-12 text-gray-500">面试不存在</div>;
+    return (
+      <div
+        className="text-center py-12 text-sm"
+        style={{ color: "var(--foreground-muted)" }}
+      >
+        面试不存在
+      </div>
+    );
   }
 
   const isActive = interview.status === "in_progress";
+  const reviewReport = interview.config?.review_report as ReviewReport | undefined;
 
   const handleSend = async (content: string) => {
     try {
-      await sendMessage.mutateAsync(content);
+      await sendStream(content);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "发送失败");
+      // Fallback to non-streaming
+      try {
+        await sendMessage.mutateAsync(content);
+      } catch (e2) {
+        toast.error(e2 instanceof Error ? e2.message : "发送失败");
+      }
     }
   };
 
@@ -59,17 +87,22 @@ export default function InterviewPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b">
+    <div className="flex flex-col h-[calc(100vh-7rem)]">
+      {/* Header Bar */}
+      <div
+        className="flex items-center justify-between pb-3 mb-3"
+        style={{ borderBottom: "1px solid var(--border-subtle)" }}
+      >
         <PhaseIndicator currentPhase={interview.current_phase} />
 
         {isActive && (
           <Dialog>
             <DialogTrigger
-              render={<Button variant="outline" size="sm" />}
+              render={<Button variant="ghost" size="sm" />}
             >
-              结束面试
+              <span className="text-[13px]" style={{ color: "var(--foreground-muted)" }}>
+                结束面试
+              </span>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -88,24 +121,53 @@ export default function InterviewPage() {
         )}
 
         {!isActive && (
-          <span className="text-sm text-gray-500">面试已结束</span>
+          <span
+            className="text-[12px] font-medium px-2 py-0.5 rounded"
+            style={{
+              color: "var(--foreground-subtle)",
+              background: "var(--surface-secondary)",
+            }}
+          >
+            面试已结束
+          </span>
         )}
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto py-4 space-y-4">
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto py-2 space-y-1">
         {interview.messages.map((msg) => (
           <ChatMessage key={msg.id} message={msg} />
         ))}
+        {isStreaming && streamingContent && (
+          <ChatMessage
+            message={{
+              id: "streaming",
+              session_id: id,
+              role: "interviewer",
+              content: streamingContent,
+              phase: interview.current_phase,
+              metadata_: null,
+              created_at: new Date().toISOString(),
+            }}
+          />
+        )}
+        {reviewReport && (
+          <div className="py-3">
+            <ReviewReportView report={reviewReport} />
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="border-t pt-4">
+      {/* Input Area */}
+      <div
+        className="pt-3 mt-1"
+        style={{ borderTop: "1px solid var(--border-subtle)" }}
+      >
         <ChatInput
           onSend={handleSend}
           disabled={!isActive}
-          loading={sendMessage.isPending}
+          loading={sendMessage.isPending || isStreaming}
         />
       </div>
     </div>

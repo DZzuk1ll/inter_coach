@@ -25,13 +25,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
+        style={{ background: "var(--background)", color: "var(--foreground)" }}
       >
         <Providers>
           <Header />
-          <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+          <main className="mx-auto max-w-[960px] px-5 py-5">{children}</main>
         </Providers>
       </body>
     </html>

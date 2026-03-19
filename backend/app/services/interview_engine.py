@@ -1,5 +1,6 @@
 import json
 import uuid
+from collections.abc import AsyncGenerator
 
 import structlog
 from sqlalchemy import select
@@ -13,6 +14,7 @@ from app.prompts.interview_phases import (
     FOLLOWUP_DECISION_PROMPT,
     INTERVIEWER_SYSTEM_PROMPT,
     PHASE_CONFIGS,
+    RESPONSE_GENERATION_PROMPT,
 )
 from app.services.knowledge_service import search_for_evaluation, search_for_questioning
 from app.services.llm_client import LLMClient
@@ -52,12 +54,23 @@ async def start_interview(
     project: Project,
     user_id: uuid.UUID,
     llm_client: LLMClient,
+    session_config: dict | None = None,
 ) -> tuple[InterviewSession, Message]:
     """Start a new interview session and generate the opening message."""
 
     analysis = project.analysis_result or {}
-    question_pool = analysis.get("question_pool", [])
+    question_pool = list(analysis.get("question_pool", []))
     overview = analysis.get("overview", {})
+
+    # Multi-project: merge question pools from additional projects
+    if session_config and session_config.get("additional_project_ids"):
+        for pid_str in session_config["additional_project_ids"]:
+            pid = uuid.UUID(pid_str)
+            res = await db.execute(select(Project).where(Project.id == pid))
+            extra_project = res.scalar_one_or_none()
+            if extra_project and extra_project.analysis_result:
+                extra_pool = extra_project.analysis_result.get("question_pool", [])
+                question_pool.extend(extra_pool)
 
     # Create session
     session = InterviewSession(
@@ -65,6 +78,7 @@ async def start_interview(
         user_id=user_id,
         status="in_progress",
         current_phase=1,
+        config=session_config,
     )
     db.add(session)
     await db.flush()
@@ -139,9 +153,21 @@ async def process_answer(
     )
     project = project_result.scalar_one()
     analysis = project.analysis_result or {}
-    question_pool = analysis.get("question_pool", [])
+    question_pool = list(analysis.get("question_pool", []))
     overview = analysis.get("overview", {})
-    code_context = analysis.get("code_context", {})
+    code_context = dict(analysis.get("code_context", {}))
+
+    # Multi-project: merge additional project data
+    p_config = session.config or {}
+    if p_config.get("additional_project_ids"):
+        for pid_str in p_config["additional_project_ids"]:
+            pid = uuid.UUID(pid_str)
+            res = await db.execute(select(Project).where(Project.id == pid))
+            extra_project = res.scalar_one_or_none()
+            if extra_project and extra_project.analysis_result:
+                extra = extra_project.analysis_result
+                question_pool.extend(extra.get("question_pool", []))
+                code_context.update(extra.get("code_context", {}))
 
     # Load message history
     msg_result = await db.execute(
@@ -275,6 +301,167 @@ async def process_answer(
     )
 
     return interviewer_msg
+
+
+async def evaluate_and_decide(
+    db: AsyncSession,
+    session: InterviewSession,
+    candidate_content: str,
+    llm_client: LLMClient,
+) -> dict:
+    """Evaluate candidate answer and decide next action (non-streaming)."""
+    project_result = await db.execute(
+        select(Project).where(Project.id == session.project_id)
+    )
+    project = project_result.scalar_one()
+    analysis = project.analysis_result or {}
+    question_pool = list(analysis.get("question_pool", []))
+    overview = analysis.get("overview", {})
+    code_context = dict(analysis.get("code_context", {}))
+
+    # Multi-project: merge additional project data
+    e_config = session.config or {}
+    if e_config.get("additional_project_ids"):
+        for pid_str in e_config["additional_project_ids"]:
+            pid = uuid.UUID(pid_str)
+            res = await db.execute(select(Project).where(Project.id == pid))
+            extra_project = res.scalar_one_or_none()
+            if extra_project and extra_project.analysis_result:
+                extra = extra_project.analysis_result
+                question_pool.extend(extra.get("question_pool", []))
+                code_context.update(extra.get("code_context", {}))
+
+    # Load message history
+    msg_result = await db.execute(
+        select(Message)
+        .where(Message.session_id == session.id)
+        .order_by(Message.created_at)
+    )
+    history_messages = list(msg_result.scalars().all())
+
+    # Save candidate message
+    candidate_msg = Message(
+        session_id=session.id,
+        role="candidate",
+        content=candidate_content,
+        phase=session.current_phase,
+    )
+    db.add(candidate_msg)
+    await db.flush()
+    history_messages.append(candidate_msg)
+
+    # Current phase info
+    current_phase = session.current_phase
+    phase_questions = _get_questions_for_phase(question_pool, current_phase)
+    question_idx = _get_current_question_index(history_messages, current_phase)
+    followup_count = _count_followups(history_messages, current_phase)
+
+    current_q = (
+        phase_questions[min(question_idx, len(phase_questions) - 1)]
+        if phase_questions
+        else {}
+    )
+
+    # Get methodology guidance
+    methodology_docs = await search_for_questioning(
+        current_phase, current_q.get("question", "")
+    )
+    eval_docs = await search_for_evaluation(candidate_content[:200])
+    methodology = "\n".join(methodology_docs + eval_docs)
+
+    # Build context
+    relevant_code = ""
+    code_ref = current_q.get("code_reference", {})
+    if code_ref and code_ref.get("file"):
+        file_path = code_ref["file"]
+        if file_path in code_context:
+            relevant_code = f"```\n# {file_path}\n{code_context[file_path][:1000]}\n```"
+        elif code_ref.get("snippet"):
+            relevant_code = f"```\n{code_ref['snippet']}\n```"
+
+    context = INTERVIEW_CONTEXT_TEMPLATE.format(
+        overview=overview.get("description", ""),
+        current_question=current_q.get("question", ""),
+        question_intent=current_q.get("intent", ""),
+        expected_points=", ".join(current_q.get("expected_points", [])),
+        code_context=relevant_code,
+        followup_angles=", ".join(current_q.get("followup_angles", [])),
+    )
+
+    # Build system prompt
+    phase_config = PHASE_CONFIGS.get(current_phase, PHASE_CONFIGS[1])
+    system_prompt = INTERVIEWER_SYSTEM_PROMPT.format(
+        phase_name=phase_config["name"],
+        phase_guidance=phase_config["guidance"],
+        methodology=methodology,
+    )
+
+    decision_prompt = FOLLOWUP_DECISION_PROMPT.format(followup_count=followup_count)
+
+    # Build chat messages for decision
+    chat_messages = [{"role": "system", "content": system_prompt}]
+    chat_messages.append({"role": "user", "content": f"面试上下文：\n{context}"})
+    for msg in history_messages[-10:]:
+        role = "assistant" if msg.role == "interviewer" else "user"
+        chat_messages.append({"role": role, "content": msg.content})
+    chat_messages.append({"role": "user", "content": decision_prompt})
+
+    # Get LLM decision (non-streaming JSON)
+    decision_data = await llm_client.chat_json(
+        chat_messages, temperature=0.6, max_tokens=2000
+    )
+
+    evaluation = decision_data.get("evaluation", "含糊")
+    decision = decision_data.get("decision", "followup")
+    new_phase = decision_data.get("new_phase")
+
+    # Handle phase transition
+    if decision == "next_phase" and new_phase and new_phase <= 4:
+        session.current_phase = new_phase
+    elif decision == "end_interview":
+        session.status = "completed"
+
+    await db.flush()
+
+    return {
+        "evaluation": evaluation,
+        "decision": decision,
+        "question_index": question_idx,
+        "system_prompt": system_prompt,
+        "context": context,
+        "history_messages": history_messages,
+        # Also include the non-streaming response if present
+        "response": decision_data.get("response", ""),
+    }
+
+
+async def generate_response_stream(
+    session: InterviewSession,
+    decision_result: dict,
+    llm_client: LLMClient,
+) -> AsyncGenerator[str, None]:
+    """Generate interviewer response as a stream of text chunks."""
+    system_prompt = decision_result["system_prompt"]
+    context = decision_result["context"]
+    history_messages = decision_result["history_messages"]
+    evaluation = decision_result["evaluation"]
+    decision = decision_result["decision"]
+
+    # Build generation prompt
+    gen_prompt = RESPONSE_GENERATION_PROMPT.format(
+        evaluation=evaluation,
+        decision=decision,
+    )
+
+    chat_messages = [{"role": "system", "content": system_prompt}]
+    chat_messages.append({"role": "user", "content": f"面试上下文：\n{context}"})
+    for msg in history_messages[-10:]:
+        role = "assistant" if msg.role == "interviewer" else "user"
+        chat_messages.append({"role": role, "content": msg.content})
+    chat_messages.append({"role": "user", "content": gen_prompt})
+
+    async for chunk in llm_client.chat_stream(chat_messages, temperature=0.7):
+        yield chunk
 
 
 async def end_interview(

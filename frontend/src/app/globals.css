@@ -1,10 +1,153 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/* ============================================================
+   InterviewCoach Design System
+   Brand: Professional · Composed · Precise
+   Ref: Linear, Notion, Raycast
+   ============================================================ */
 
 :root {
+  /* ---- Neutral Gray Scale ---- */
+  --gray-1: #fcfcfc;
+  --gray-2: #f8f8f8;
+  --gray-3: #f1f1f1;
+  --gray-4: #eaeaea;
+  --gray-5: #e1e1e1;
+  --gray-6: #d0d0d0;
+  --gray-7: #b0b0b0;
+  --gray-8: #8c8c8c;
+  --gray-9: #6e6e6e;
+  --gray-10: #4f4f4f;
+  --gray-11: #3a3a3a;
+  --gray-12: #1a1a1a;
+
+  /* ---- Indigo Accent (single accent) ---- */
+  --accent-1: #f0f2ff;
+  --accent-2: #e4e8fc;
+  --accent-3: #c9d0f5;
+  --accent-4: #a2aeeb;
+  --accent-5: #7b8ddf;
+  --accent-6: #5a6fcf;
+  --accent-7: #4558b8;
+  --accent-8: #364797;
+  --accent-9: #2b3a7d;
+  --accent-10: #1e2a5e;
+
+  /* ---- Semantic Tokens (Light) ---- */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: var(--gray-12);
+  --foreground-muted: var(--gray-9);
+  --foreground-subtle: var(--gray-8);
+
+  --surface-primary: #ffffff;
+  --surface-secondary: var(--gray-2);
+  --surface-tertiary: var(--gray-3);
+  --surface-inset: var(--gray-1);
+
+  --border-default: var(--gray-4);
+  --border-subtle: var(--gray-3);
+  --border-strong: var(--gray-5);
+
+  --accent-fg: var(--accent-7);
+  --accent-bg: var(--accent-1);
+  --accent-bg-strong: var(--accent-2);
+  --accent-border: var(--accent-3);
+
+  /* Status */
+  --status-success: #2d7a3a;
+  --status-success-bg: #edf7ee;
+  --status-warning: #b45309;
+  --status-warning-bg: #fef3c7;
+  --status-error: #c53030;
+  --status-error-bg: #fef1f1;
+
+  /* Chat-specific */
+  --chat-interviewer-bg: var(--gray-2);
+  --chat-interviewer-border: var(--gray-4);
+  --chat-candidate-bg: var(--gray-12);
+  --chat-candidate-fg: var(--gray-1);
+
+  /* Code blocks */
+  --code-bg: var(--gray-2);
+  --code-border: var(--gray-4);
+  --code-fg: var(--gray-12);
+
+  /* Progress */
+  --progress-track: var(--gray-3);
+  --progress-fill: var(--accent-7);
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
 }
 
+.dark {
+    --gray-1: #111111;
+    --gray-2: #191919;
+    --gray-3: #222222;
+    --gray-4: #2e2e2e;
+    --gray-5: #393939;
+    --gray-6: #4a4a4a;
+    --gray-7: #5e5e5e;
+    --gray-8: #7a7a7a;
+    --gray-9: #9a9a9a;
+    --gray-10: #b0b0b0;
+    --gray-11: #cfcfcf;
+    --gray-12: #eeeeee;
+
+    --accent-1: #171c2e;
+    --accent-2: #1e2440;
+    --accent-3: #2a3460;
+    --accent-4: #3a4a80;
+    --accent-5: #5068a8;
+    --accent-6: #6b82c4;
+    --accent-7: #8a9dd6;
+    --accent-8: #a8b8e4;
+    --accent-9: #c2ceed;
+    --accent-10: #dde3f5;
+
+    --background: #0e0e0e;
+    --foreground: var(--gray-12);
+    --foreground-muted: var(--gray-9);
+    --foreground-subtle: var(--gray-8);
+
+    --surface-primary: var(--gray-2);
+    --surface-secondary: var(--gray-3);
+    --surface-tertiary: var(--gray-4);
+    --surface-inset: var(--gray-1);
+
+    --border-default: var(--gray-4);
+    --border-subtle: var(--gray-3);
+    --border-strong: var(--gray-5);
+
+    --accent-fg: var(--accent-7);
+    --accent-bg: var(--accent-1);
+    --accent-bg-strong: var(--accent-2);
+    --accent-border: var(--accent-3);
+
+    --status-success: #4caf50;
+    --status-success-bg: #1a2e1b;
+    --status-warning: #f59e0b;
+    --status-warning-bg: #2e2a1a;
+    --status-error: #ef5350;
+    --status-error-bg: #2e1a1a;
+
+    --chat-interviewer-bg: var(--gray-3);
+    --chat-interviewer-border: var(--gray-4);
+    --chat-candidate-bg: var(--gray-5);
+    --chat-candidate-fg: var(--gray-12);
+
+    --code-bg: var(--gray-3);
+    --code-border: var(--gray-4);
+    --code-fg: var(--gray-12);
+
+    --progress-track: var(--gray-4);
+    --progress-fill: var(--accent-6);
+}
+
+/* ---- Tailwind v4 Theme Binding ---- */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -12,15 +155,91 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ---- Global Styles ---- */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  letter-spacing: -0.011em;
+}
+
+/* ---- Typography ---- */
+h1, h2, h3 {
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+code, pre, .font-mono {
+  font-family: var(--font-geist-mono), 'SF Mono', 'Fira Code', monospace;
+}
+
+/* ---- Selection ---- */
+::selection {
+  background: var(--accent-bg-strong);
+  color: var(--foreground);
+}
+
+/* ---- Scrollbar (subtle) ---- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gray-5);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-6);
+}
+
+/* ---- Prose Overrides (chat messages) ---- */
+.prose {
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-links: var(--accent-fg);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-bg: var(--code-bg);
+  --tw-prose-pre-code: var(--code-fg);
+  --tw-prose-bullets: var(--foreground-subtle);
+  --tw-prose-counters: var(--foreground-subtle);
+}
+
+.prose-invert {
+  --tw-prose-body: var(--chat-candidate-fg);
+  --tw-prose-headings: var(--chat-candidate-fg);
+  --tw-prose-links: var(--accent-9);
+  --tw-prose-bold: var(--chat-candidate-fg);
+  --tw-prose-code: var(--chat-candidate-fg);
+}
+
+/* ---- Focus Ring ---- */
+*:focus-visible {
+  outline: 2px solid var(--accent-fg);
+  outline-offset: 2px;
+}
+
+/* ---- Drag-and-drop zone states ---- */
+.drop-zone-idle {
+  border-color: var(--border-default);
+  background: var(--surface-inset);
+}
+
+.drop-zone-hover {
+  border-color: var(--accent-fg);
+  background: var(--accent-bg);
+}
+
+/* ---- Toast overrides ---- */
+.cn-toast {
+  font-family: var(--font-geist-sans), sans-serif;
 }

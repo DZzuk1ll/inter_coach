@@ -9,6 +9,7 @@ from app.schemas.message import MessageRead
 
 class InterviewCreate(BaseModel):
     config: dict[str, Any] | None = None
+    additional_project_ids: list[uuid.UUID] | None = None
 
 
 class InterviewRead(BaseModel):

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.database import get_db_session
 from app.models.user import User
 from app.services.user_service import get_or_create_user
@@ -37,11 +38,27 @@ def get_llm_config(request: Request) -> LLMConfig:
     api_key = request.headers.get("X-LLM-API-Key")
     model = request.headers.get("X-LLM-Model")
 
+    # If all headers are missing, fall back to config.yaml defaults
     if not any([base_url, api_key, model]):
+        settings = get_settings()
+        default = settings.llm
+        if all([default.base_url, default.api_key, default.model]):
+            return LLMConfig(
+                base_url=default.base_url,
+                api_key=default.api_key,
+                model=default.model,
+            )
         raise HTTPException(
             status_code=400,
             detail="请先在设置页配置 LLM API（Base URL、API Key、Model）",
         )
+
+    # Partial headers provided — fill gaps from config.yaml
+    settings = get_settings()
+    default = settings.llm
+    base_url = base_url or default.base_url
+    api_key = api_key or default.api_key
+    model = model or default.model
 
     if not all([base_url, api_key, model]):
         missing = []

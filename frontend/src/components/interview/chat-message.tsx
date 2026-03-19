@@ -4,8 +4,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import type { Message } from "@/types";
-import { Badge } from "@/components/ui/badge";
 
 interface ChatMessageProps {
   message: Message;
@@ -17,22 +17,37 @@ export function ChatMessage({ message }: ChatMessageProps) {
   return (
     <div
       className={`flex ${isInterviewer ? "justify-start" : "justify-end"}`}
+      style={{ padding: "3px 0" }}
     >
       <div
-        className={`max-w-[80%] rounded-lg px-4 py-3 ${
-          isInterviewer
-            ? "bg-white border border-gray-200"
-            : "bg-blue-500 text-white"
-        }`}
+        className="max-w-[80%] rounded-md px-3.5 py-2.5"
+        style={{
+          background: isInterviewer
+            ? "var(--chat-interviewer-bg)"
+            : "var(--chat-candidate-bg)",
+          border: isInterviewer
+            ? "1px solid var(--chat-interviewer-border)"
+            : "none",
+          color: isInterviewer ? "var(--foreground)" : "var(--chat-candidate-fg)",
+        }}
       >
         {isInterviewer && (
-          <div className="mb-2 flex items-center gap-2">
-            <span className="text-xs font-medium text-gray-500">
-              AI 面试官
+          <div
+            className="mb-1.5 flex items-center gap-1.5"
+            style={{ color: "var(--foreground-subtle)" }}
+          >
+            <span className="text-[11px] font-medium">
+              面试官
             </span>
-            <Badge variant="outline" className="text-[10px] px-1 py-0">
-              AI 生成
-            </Badge>
+            <span
+              className="text-[10px] px-1 py-px rounded"
+              style={{
+                background: "var(--surface-tertiary)",
+                color: "var(--foreground-subtle)",
+              }}
+            >
+              AI
+            </span>
           </div>
         )}
 
@@ -40,6 +55,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
           className={`prose prose-sm max-w-none ${
             isInterviewer ? "" : "prose-invert"
           }`}
+          style={{ fontSize: "13px", lineHeight: "1.6" }}
         >
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
@@ -50,22 +66,56 @@ export function ChatMessage({ message }: ChatMessageProps) {
 
                 if (match) {
                   return (
-                    <SyntaxHighlighter
-                      style={oneLight}
-                      language={match[1]}
-                      PreTag="div"
-                      customStyle={{
-                        fontSize: "12px",
-                        borderRadius: "6px",
+                    <div
+                      className="my-2 overflow-hidden rounded"
+                      style={{
+                        border: "1px solid var(--code-border)",
                       }}
                     >
-                      {codeStr}
-                    </SyntaxHighlighter>
+                      <div
+                        className="flex items-center justify-between px-3 py-1"
+                        style={{
+                          background: "var(--surface-tertiary)",
+                          borderBottom: "1px solid var(--code-border)",
+                        }}
+                      >
+                        <span
+                          className="text-[11px] font-mono"
+                          style={{ color: "var(--foreground-subtle)" }}
+                        >
+                          {match[1]}
+                        </span>
+                      </div>
+                      <SyntaxHighlighter
+                        style={isInterviewer ? oneLight : oneDark}
+                        language={match[1]}
+                        PreTag="div"
+                        customStyle={{
+                          fontSize: "12px",
+                          lineHeight: "1.5",
+                          margin: 0,
+                          padding: "10px 12px",
+                          background: "var(--code-bg)",
+                          border: "none",
+                          borderRadius: 0,
+                        }}
+                      >
+                        {codeStr}
+                      </SyntaxHighlighter>
+                    </div>
                   );
                 }
 
                 return (
-                  <code className={className} {...props}>
+                  <code
+                    className="text-[12px] font-mono px-1 py-0.5 rounded"
+                    style={{
+                      background: isInterviewer
+                        ? "var(--surface-tertiary)"
+                        : "rgba(255,255,255,0.12)",
+                    }}
+                    {...props}
+                  >
                     {children}
                   </code>
                 );
@@ -76,7 +126,14 @@ export function ChatMessage({ message }: ChatMessageProps) {
           </ReactMarkdown>
         </div>
 
-        <div className="mt-1 text-[10px] opacity-50">
+        <div
+          className="mt-1.5 text-[10px] tabular-nums"
+          style={{
+            color: isInterviewer
+              ? "var(--foreground-subtle)"
+              : "rgba(255,255,255,0.4)",
+          }}
+        >
           {new Date(message.created_at).toLocaleTimeString("zh-CN", {
             hour: "2-digit",
             minute: "2-digit",

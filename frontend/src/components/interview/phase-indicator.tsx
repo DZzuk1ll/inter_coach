@@ -13,30 +13,64 @@ interface PhaseIndicatorProps {
 
 export function PhaseIndicator({ currentPhase }: PhaseIndicatorProps) {
   return (
-    <div className="flex items-center gap-1">
-      {PHASES.map((phase, i) => (
-        <div key={phase.id} className="flex items-center">
-          <div
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
-              phase.id === currentPhase
-                ? "bg-blue-100 text-blue-700"
-                : phase.id < currentPhase
-                  ? "bg-green-100 text-green-700"
-                  : "bg-gray-100 text-gray-400"
-            }`}
-          >
-            {phase.id < currentPhase && <span>&#10003;</span>}
-            <span>{phase.name}</span>
-          </div>
-          {i < PHASES.length - 1 && (
+    <div className="flex items-center gap-0.5">
+      {PHASES.map((phase, i) => {
+        const isCompleted = phase.id < currentPhase;
+        const isCurrent = phase.id === currentPhase;
+        const isFuture = phase.id > currentPhase;
+
+        return (
+          <div key={phase.id} className="flex items-center">
             <div
-              className={`mx-1 h-px w-4 ${
-                phase.id < currentPhase ? "bg-green-300" : "bg-gray-200"
-              }`}
-            />
-          )}
-        </div>
-      ))}
+              className="flex items-center gap-1 px-2 py-0.5 text-[12px] font-medium rounded"
+              style={{
+                background: isCurrent
+                  ? "var(--accent-bg)"
+                  : isCompleted
+                    ? "var(--surface-secondary)"
+                    : "transparent",
+                color: isCurrent
+                  ? "var(--accent-fg)"
+                  : isCompleted
+                    ? "var(--foreground-muted)"
+                    : "var(--foreground-subtle)",
+                border: isCurrent
+                  ? "1px solid var(--accent-border)"
+                  : "1px solid transparent",
+              }}
+            >
+              {isCompleted && (
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path
+                    d="M2 5L4 7L8 3"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+              {isCurrent && (
+                <span
+                  className="inline-block w-1 h-1 rounded-full"
+                  style={{ background: "var(--accent-fg)" }}
+                />
+              )}
+              <span>{phase.name}</span>
+            </div>
+            {i < PHASES.length - 1 && (
+              <div
+                className="mx-0.5 h-px w-3"
+                style={{
+                  background: isCompleted
+                    ? "var(--foreground-subtle)"
+                    : "var(--border-default)",
+                }}
+              />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

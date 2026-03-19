@@ -27,6 +27,14 @@ class AppConfig:
     secret_key: str = "change-me"
     max_zip_size_mb: int = 50
     temp_dir: str = "/tmp/interview_coach"
+    cors_origins: list[str] | None = None
+
+
+@dataclass
+class DefaultLLMConfig:
+    base_url: str = ""
+    api_key: str = ""
+    model: str = ""
 
 
 @dataclass
@@ -35,6 +43,7 @@ class Settings:
     embedding: EmbeddingConfig = field(default_factory=EmbeddingConfig)
     github: GitHubConfig = field(default_factory=GitHubConfig)
     app: AppConfig = field(default_factory=AppConfig)
+    llm: DefaultLLMConfig = field(default_factory=DefaultLLMConfig)
 
 
 def _load_yaml_config() -> dict:
@@ -53,4 +62,5 @@ def get_settings() -> Settings:
         embedding=EmbeddingConfig(**raw.get("embedding", {})),
         github=GitHubConfig(**raw.get("github", {})),
         app=AppConfig(**raw.get("app", {})),
+        llm=DefaultLLMConfig(**raw.get("llm", {})),
     )

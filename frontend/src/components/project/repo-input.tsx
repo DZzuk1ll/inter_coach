@@ -1,7 +1,7 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface RepoInputProps {
@@ -21,9 +21,29 @@ export function RepoInput({
   zipFile,
   onZipFileChange,
 }: RepoInputProps) {
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.name.endsWith(".zip")) {
+      onZipFileChange(file);
+    }
+  }, [onZipFileChange]);
+
   return (
-    <div className="space-y-3">
-      <Label>代码仓库</Label>
+    <div>
       <Tabs value={sourceType} onValueChange={onSourceTypeChange}>
         <TabsList>
           <TabsTrigger value="github_url">GitHub URL</TabsTrigger>
@@ -39,7 +59,16 @@ export function RepoInput({
         </TabsContent>
 
         <TabsContent value="zip_upload">
-          <div className="rounded-lg border-2 border-dashed p-6 text-center">
+          <div
+            className="rounded-md border border-dashed p-5 text-center transition-colors cursor-pointer"
+            style={{
+              borderColor: isDragOver ? "var(--accent-fg)" : "var(--border-default)",
+              background: isDragOver ? "var(--accent-bg)" : "var(--surface-inset)",
+            }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
             <input
               type="file"
               accept=".zip"
@@ -49,15 +78,25 @@ export function RepoInput({
                 onZipFileChange(e.target.files?.[0] || null)
               }
             />
-            <label htmlFor="zip-upload" className="cursor-pointer">
+            <label htmlFor="zip-upload" className="cursor-pointer block">
               {zipFile ? (
-                <p className="text-sm">
-                  {zipFile.name} ({(zipFile.size / 1024 / 1024).toFixed(1)} MB)
-                </p>
+                <div>
+                  <p className="text-[13px] font-medium" style={{ color: "var(--foreground)" }}>
+                    {zipFile.name}
+                  </p>
+                  <p className="text-[12px] mt-0.5" style={{ color: "var(--foreground-subtle)" }}>
+                    {(zipFile.size / 1024 / 1024).toFixed(1)} MB
+                  </p>
+                </div>
               ) : (
-                <p className="text-sm text-gray-500">
-                  点击选择或拖拽 .zip 文件（最大 50MB）
-                </p>
+                <div>
+                  <p className="text-[13px]" style={{ color: "var(--foreground-muted)" }}>
+                    点击选择或拖拽 .zip 文件
+                  </p>
+                  <p className="text-[11px] mt-0.5" style={{ color: "var(--foreground-subtle)" }}>
+                    最大 50MB
+                  </p>
+                </div>
               )}
             </label>
           </div>

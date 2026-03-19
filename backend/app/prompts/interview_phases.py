@@ -56,6 +56,22 @@ PHASE_CONFIGS = {
 }
 
 
+RESPONSE_GENERATION_PROMPT = """根据以下评估结果，生成面试官的回复。
+
+## 评估结果
+评估：{evaluation}
+决策：{decision}
+
+## 指示
+- 如果决策是 followup，追问候选人回答中的薄弱点
+- 如果决策是 next_question，对上一个回答做简短点评后引出下一题
+- 如果决策是 next_phase，自然过渡到下一阶段
+- 如果决策是 hint_and_move，给出简要提示后进入下一题
+- 如果决策是 end_interview，做简短面试总结
+
+请直接输出面试官的回复文本，可以引用代码（使用 Markdown 代码块）。用中文回复。"""
+
+
 FOLLOWUP_DECISION_PROMPT = """基于候选人的回答，评估回答质量并决定下一步动作。
 
 ## 评估标准

@@ -41,3 +41,4 @@ class ProjectListItem(BaseModel):
 class AnalysisStatusResponse(BaseModel):
     status: str
     message: str
+    progress: int = 0

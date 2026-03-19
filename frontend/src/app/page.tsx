@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AnalysisProgress } from "@/components/project/analysis-progress";
+import { DisclaimerDialog } from "@/components/project/disclaimer-dialog";
 import { JdInput } from "@/components/project/jd-input";
 import { RepoInput } from "@/components/project/repo-input";
 import { ResumeUpload } from "@/components/project/resume-upload";
@@ -18,6 +17,7 @@ import { useCreateProject } from "@/hooks/use-projects";
 export default function HomePage() {
   const { configured } = useLLMConfig();
   const createProject = useCreateProject();
+  const router = useRouter();
 
   const [name, setName] = useState("");
   const [sourceType, setSourceType] = useState("github_url");
@@ -28,8 +28,15 @@ export default function HomePage() {
   const [submittedProjectId, setSubmittedProjectId] = useState<string | null>(
     null,
   );
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
 
-  const handleSubmit = async () => {
+  const doSubmit = useCallback(async () => {
+    if (!configured) {
+      toast.error("请先在设置页配置 LLM API");
+      router.push("/settings");
+      return;
+    }
     if (!name.trim()) {
       toast.error("请输入项目名称");
       return;
@@ -70,29 +77,35 @@ export default function HomePage() {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "创建项目失败");
     }
+  }, [configured, name, sourceType, githubUrl, zipFile, resumeFile, jdText, router, createProject]);
+
+  const handleSubmit = async () => {
+    const accepted = localStorage.getItem("disclaimer_accepted");
+    if (!accepted) {
+      setPendingSubmit(true);
+      setShowDisclaimer(true);
+      return;
+    }
+    await doSubmit();
   };
 
-  if (!configured) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold">InterviewCoach</h1>
-        <Alert>
-          <AlertDescription>
-            请先在{" "}
-            <Link href="/settings" className="underline font-medium">
-              设置页
-            </Link>{" "}
-            配置 LLM API，然后再开始使用。
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+  const handleDisclaimerAccepted = useCallback(() => {
+    setShowDisclaimer(false);
+    if (pendingSubmit) {
+      setPendingSubmit(false);
+      doSubmit();
+    }
+  }, [pendingSubmit, doSubmit]);
 
   if (submittedProjectId) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold">项目分析中</h1>
+        <h1
+          className="text-lg font-semibold tracking-tight"
+          style={{ color: "var(--foreground)" }}
+        >
+          项目分析中
+        </h1>
         <AnalysisProgress projectId={submittedProjectId} />
       </div>
     );
@@ -100,23 +113,55 @@ export default function HomePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">新建面试项目</h1>
+      {showDisclaimer && (
+        <DisclaimerDialog onAccepted={handleDisclaimerAccepted} />
+      )}
+      <h1
+        className="text-lg font-semibold tracking-tight"
+        style={{ color: "var(--foreground)" }}
+      >
+        新建面试项目
+      </h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>项目信息</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
+      <div
+        className="rounded-lg p-5 space-y-5"
+        style={{
+          background: "var(--surface-primary)",
+          border: "1px solid var(--border-subtle)",
+        }}
+      >
+        {/* Step 1: Project Name */}
+        <div className="space-y-1.5">
+          <div className="flex items-baseline gap-2">
+            <span
+              className="text-[11px] font-medium tabular-nums"
+              style={{ color: "var(--foreground-subtle)" }}
+            >
+              01
+            </span>
             <Label htmlFor="project-name">项目名称</Label>
-            <Input
-              id="project-name"
-              placeholder="例如：电商平台后端"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
           </div>
+          <Input
+            id="project-name"
+            placeholder="例如：电商平台后端"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
 
+        <div style={{ height: "1px", background: "var(--border-subtle)" }} />
+
+        {/* Step 2: Code Repo */}
+        <div className="space-y-1.5">
+          <div className="flex items-baseline gap-2">
+            <span
+              className="text-[11px] font-medium tabular-nums"
+              style={{ color: "var(--foreground-subtle)" }}
+            >
+              02
+            </span>
+            <Label>代码仓库</Label>
+          </div>
           <RepoInput
             sourceType={sourceType}
             onSourceTypeChange={setSourceType}
@@ -125,20 +170,48 @@ export default function HomePage() {
             zipFile={zipFile}
             onZipFileChange={setZipFile}
           />
+        </div>
 
+        <div style={{ height: "1px", background: "var(--border-subtle)" }} />
+
+        {/* Step 3: Resume */}
+        <div className="space-y-1.5">
+          <div className="flex items-baseline gap-2">
+            <span
+              className="text-[11px] font-medium tabular-nums"
+              style={{ color: "var(--foreground-subtle)" }}
+            >
+              03
+            </span>
+            <Label>简历</Label>
+          </div>
           <ResumeUpload file={resumeFile} onFileChange={setResumeFile} />
+        </div>
 
+        <div style={{ height: "1px", background: "var(--border-subtle)" }} />
+
+        {/* Step 4: JD */}
+        <div className="space-y-1.5">
+          <div className="flex items-baseline gap-2">
+            <span
+              className="text-[11px] font-medium tabular-nums"
+              style={{ color: "var(--foreground-subtle)" }}
+            >
+              04
+            </span>
+            <Label>岗位 JD</Label>
+          </div>
           <JdInput value={jdText} onChange={setJdText} />
+        </div>
 
-          <Button
-            className="w-full"
-            onClick={handleSubmit}
-            disabled={createProject.isPending}
-          >
-            {createProject.isPending ? "创建中..." : "提交并开始分析"}
-          </Button>
-        </CardContent>
-      </Card>
+        <Button
+          className="w-full"
+          onClick={handleSubmit}
+          disabled={createProject.isPending}
+        >
+          {createProject.isPending ? "创建中..." : "提交并开始分析"}
+        </Button>
+      </div>
     </div>
   );
 }

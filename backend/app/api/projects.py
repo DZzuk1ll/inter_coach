@@ -10,6 +10,7 @@ from app.config import get_settings
 from app.database import get_db_session
 from app.dependencies import LLMConfig, get_anonymous_user, get_llm_config
 from app.models.user import User
+from app.prompts.resume_advice import RESUME_ADVICE_PROMPT
 from app.schemas.common import error_response, success_response
 from app.schemas.project import (
     AnalysisStatusResponse,
@@ -23,6 +24,7 @@ from app.services.project_service import (
     list_projects,
     run_analysis_task,
 )
+from app.services.llm_client import LLMClient
 from app.services.resume_parser import extract_text_from_pdf
 
 log = structlog.get_logger()
@@ -34,6 +36,13 @@ ANALYSIS_STATUS_MESSAGES = {
     "analyzing": "正在分析项目...",
     "completed": "分析完成",
     "failed": "分析失败",
+}
+
+ANALYSIS_STATUS_PROGRESS = {
+    "pending": 5,
+    "analyzing": 50,
+    "completed": 100,
+    "failed": 100,
 }
 
 
@@ -163,6 +172,16 @@ async def get_analysis_status(
         raise HTTPException(status_code=404, detail="Project not found")
 
     message = ANALYSIS_STATUS_MESSAGES.get(project.analysis_status, "未知状态")
+    progress = ANALYSIS_STATUS_PROGRESS.get(project.analysis_status, 0)
+
+    # Use fine-grained step info from analysis_result if available
+    if project.analysis_result:
+        step_msg = project.analysis_result.get("step_message")
+        step_progress = project.analysis_result.get("progress")
+        if step_msg:
+            message = step_msg
+        if step_progress is not None:
+            progress = step_progress
 
     # If failed, include error message
     if project.analysis_status == "failed" and project.analysis_result:
@@ -174,5 +193,49 @@ async def get_analysis_status(
         AnalysisStatusResponse(
             status=project.analysis_status,
             message=message,
+            progress=progress,
         )
     )
+
+
+@router.get("/{project_id}/resume-advice")
+async def get_resume_advice(
+    project_id: uuid.UUID,
+    user: User = Depends(get_anonymous_user),
+    llm_config: LLMConfig = Depends(get_llm_config),
+    db: AsyncSession = Depends(get_db_session),
+):
+    project = await get_project(db, project_id, user.id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.analysis_status != "completed":
+        raise HTTPException(status_code=400, detail="项目分析尚未完成")
+
+    analysis = project.analysis_result or {}
+    triangulation = analysis.get("triangulation", {})
+    overview = analysis.get("overview", {})
+
+    overview_text = (
+        f"项目：{overview.get('description', project.name)}\n"
+        f"技术栈：{overview.get('language', '')} / {overview.get('framework', '')}\n"
+        f"架构：{overview.get('architecture', '')}"
+    )
+
+    prompt = RESUME_ADVICE_PROMPT.format(
+        resume_text=project.resume_text[:3000],
+        jd_text=project.jd_text[:2000],
+        matches=", ".join(triangulation.get("matches", [])),
+        exaggerations=", ".join(triangulation.get("exaggerations", [])),
+        gaps=", ".join(triangulation.get("gaps", [])),
+        highlights=", ".join(triangulation.get("highlights", [])),
+        overview=overview_text,
+    )
+
+    llm_client = LLMClient(llm_config)
+    advice = await llm_client.chat_json(
+        [{"role": "user", "content": prompt}],
+        temperature=0.5,
+        max_tokens=3000,
+    )
+
+    return success_response(advice)

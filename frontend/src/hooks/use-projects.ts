@@ -55,3 +55,22 @@ export function useDeleteProject() {
     },
   });
 }
+
+export interface ResumeAdvice {
+  type: "add" | "modify" | "remove" | "quantify";
+  section: string;
+  original: string;
+  suggestion: string;
+  reason: string;
+}
+
+export function useResumeAdvice(projectId: string | null) {
+  return useQuery({
+    queryKey: ["resume-advice", projectId],
+    queryFn: () =>
+      api.get<{ advices: ResumeAdvice[] }>(
+        `/api/projects/${projectId}/resume-advice`,
+      ),
+    enabled: false, // manually triggered
+  });
+}

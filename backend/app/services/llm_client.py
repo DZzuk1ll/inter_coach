@@ -1,4 +1,5 @@
 import json
+from collections.abc import AsyncGenerator
 
 import structlog
 from openai import AsyncOpenAI
@@ -44,6 +45,28 @@ class LLMClient:
         except Exception as e:
             await log.aerror("llm_call_failed", error=str(e))
             raise LLMError(f"LLM call failed: {e}") from e
+
+    async def chat_stream(
+        self,
+        messages: list[dict],
+        temperature: float = 0.7,
+        max_tokens: int = 2000,
+    ) -> AsyncGenerator[str, None]:
+        try:
+            stream = await self.client.chat.completions.create(
+                model=self.config.model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=True,
+            )
+            async for chunk in stream:
+                delta = chunk.choices[0].delta if chunk.choices else None
+                if delta and delta.content:
+                    yield delta.content
+        except Exception as e:
+            await log.aerror("llm_stream_failed", error=str(e))
+            raise LLMError(f"LLM stream failed: {e}") from e
 
     async def chat_json(
         self,
