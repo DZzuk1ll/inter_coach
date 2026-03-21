@@ -1,6 +1,6 @@
 export default function PrivacyPage() {
   return (
-    <div className="prose prose-sm max-w-none">
+    <div className="prose prose-sm max-w-[640px]">
       <h1>隐私政策</h1>
 
       <h2>收集的数据</h2>

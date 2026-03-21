@@ -65,8 +65,8 @@
   /* Chat-specific */
   --chat-interviewer-bg: var(--gray-2);
   --chat-interviewer-border: var(--gray-4);
-  --chat-candidate-bg: var(--gray-12);
-  --chat-candidate-fg: var(--gray-1);
+  --chat-candidate-bg: var(--accent-1);
+  --chat-candidate-fg: var(--foreground);
 
   /* Code blocks */
   --code-bg: var(--gray-2);
@@ -81,6 +81,28 @@
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
+
+  /* Sidebar */
+  --sidebar-width-collapsed: 56px;
+  --sidebar-width-expanded: 240px;
+  --sidebar-bg: var(--surface-primary);
+  --sidebar-border: var(--border-subtle);
+  --sidebar-item-hover: var(--surface-secondary);
+  --sidebar-item-active-bg: var(--accent-bg);
+  --sidebar-item-active-border: var(--accent-fg);
+  --sidebar-item-fg: var(--foreground-muted);
+  --sidebar-item-fg-active: var(--foreground);
+
+  /* Content */
+  --content-padding-x: 32px;
+  --content-padding-y: 24px;
+
+  /* Interview Phase Panel */
+  --phase-panel-width: 280px;
+
+  /* Table */
+  --table-row-hover: var(--surface-secondary);
+  --table-header-fg: var(--foreground-subtle);
 }
 
 .dark {
@@ -136,8 +158,8 @@
 
     --chat-interviewer-bg: var(--gray-3);
     --chat-interviewer-border: var(--gray-4);
-    --chat-candidate-bg: var(--gray-5);
-    --chat-candidate-fg: var(--gray-12);
+    --chat-candidate-bg: var(--accent-2);
+    --chat-candidate-fg: var(--foreground);
 
     --code-bg: var(--gray-3);
     --code-border: var(--gray-4);
@@ -145,6 +167,8 @@
 
     --progress-track: var(--gray-4);
     --progress-fill: var(--accent-6);
+
+    --sidebar-bg: var(--gray-2);
 }
 
 /* ---- Tailwind v4 Theme Binding ---- */
@@ -237,6 +261,11 @@ code, pre, .font-mono {
 .drop-zone-hover {
   border-color: var(--accent-fg);
   background: var(--accent-bg);
+}
+
+/* ---- Sidebar transition ---- */
+.sidebar-transition {
+  transition: width 200ms ease, margin-left 200ms ease;
 }
 
 /* ---- Toast overrides ---- */

@@ -1,6 +1,6 @@
 export default function DisclaimerPage() {
   return (
-    <div className="prose prose-sm max-w-none">
+    <div className="prose prose-sm max-w-[640px]">
       <h1>免责声明</h1>
 
       <h2>代码上传</h2>

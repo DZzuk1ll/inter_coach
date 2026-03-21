@@ -50,7 +50,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-[640px] space-y-6">
       <h1
         className="text-lg font-semibold tracking-tight"
         style={{ color: "var(--foreground)" }}
@@ -79,17 +79,11 @@ export default function SettingsPage() {
                 key={name}
                 type="button"
                 onClick={() => applyPreset(name)}
-                className="px-2 py-0.5 text-[12px] font-medium rounded transition-colors cursor-pointer"
+                className="px-2.5 py-0.5 text-[12px] font-medium rounded-full transition-colors cursor-pointer hover:bg-[--surface-tertiary]"
                 style={{
                   color: "var(--foreground-muted)",
                   background: "var(--surface-secondary)",
                   border: "1px solid var(--border-default)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "var(--surface-tertiary)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "var(--surface-secondary)";
                 }}
               >
                 {name}
@@ -146,12 +140,17 @@ export default function SettingsPage() {
 
       {/* Danger Zone */}
       <section
-        className="rounded-lg p-5"
+        className="rounded-lg p-5 relative overflow-hidden"
         style={{
           background: "var(--surface-primary)",
           border: "1px solid var(--border-subtle)",
         }}
       >
+        {/* Red left accent line */}
+        <div
+          className="absolute left-0 top-0 bottom-0 w-[3px]"
+          style={{ background: "var(--status-error)" }}
+        />
         <h2
           className="text-[13px] font-semibold mb-3"
           style={{ color: "var(--status-error)" }}
@@ -165,15 +164,13 @@ export default function SettingsPage() {
           删除你的所有数据，包括项目、面试记录和对话历史。此操作不可逆。
         </p>
         <button
-          className="px-2.5 py-1 text-[12px] font-medium rounded transition-colors cursor-pointer"
+          className="px-2.5 py-1 text-[12px] font-medium rounded transition-colors cursor-pointer hover:opacity-100"
           style={{
             color: "var(--status-error)",
             background: "var(--status-error-bg)",
             border: "1px solid var(--status-error)",
             opacity: 0.8,
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.8"; }}
           onClick={() => setDeleteOpen(true)}
         >
           删除我的所有数据
@@ -202,7 +199,7 @@ export default function SettingsPage() {
                     regenerateAnonymousId();
                     toast.success("所有数据已删除");
                     window.location.reload();
-                  } catch (e) {
+                  } catch {
                     toast.error("删除失败");
                   }
                 }}

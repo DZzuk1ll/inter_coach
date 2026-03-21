@@ -20,14 +20,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
       style={{ padding: "3px 0" }}
     >
       <div
-        className="max-w-[80%] rounded-md px-3.5 py-2.5"
+        className="max-w-[720px] rounded-md px-3.5 py-2.5"
         style={{
           background: isInterviewer
             ? "var(--chat-interviewer-bg)"
             : "var(--chat-candidate-bg)",
-          border: isInterviewer
-            ? "1px solid var(--chat-interviewer-border)"
-            : "none",
           color: isInterviewer ? "var(--foreground)" : "var(--chat-candidate-fg)",
         }}
       >
@@ -52,9 +49,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         )}
 
         <div
-          className={`prose prose-sm max-w-none ${
-            isInterviewer ? "" : "prose-invert"
-          }`}
+          className="prose prose-sm max-w-none"
           style={{ fontSize: "13px", lineHeight: "1.6" }}
         >
           <ReactMarkdown
@@ -112,7 +107,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
                     style={{
                       background: isInterviewer
                         ? "var(--surface-tertiary)"
-                        : "rgba(255,255,255,0.12)",
+                        : "var(--accent-bg-strong)",
                     }}
                     {...props}
                   >
@@ -129,9 +124,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         <div
           className="mt-1.5 text-[10px] tabular-nums"
           style={{
-            color: isInterviewer
-              ? "var(--foreground-subtle)"
-              : "rgba(255,255,255,0.4)",
+            color: "var(--foreground-subtle)",
           }}
         >
           {new Date(message.created_at).toLocaleTimeString("zh-CN", {

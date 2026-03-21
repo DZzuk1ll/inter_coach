@@ -3,19 +3,9 @@
 import { useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { ChatInput } from "@/components/interview/chat-input";
 import { ChatMessage } from "@/components/interview/chat-message";
-import { PhaseIndicator } from "@/components/interview/phase-indicator";
+import { PhaseSidebar } from "@/components/interview/phase-sidebar";
 import { ReviewReportView } from "@/components/interview/review-report";
 import {
   useEndInterview,
@@ -67,8 +57,7 @@ export default function InterviewPage() {
   const handleSend = async (content: string) => {
     try {
       await sendStream(content);
-    } catch (e) {
-      // Fallback to non-streaming
+    } catch {
       try {
         await sendMessage.mutateAsync(content);
       } catch (e2) {
@@ -87,88 +76,57 @@ export default function InterviewPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-7rem)]">
-      {/* Header Bar */}
-      <div
-        className="flex items-center justify-between pb-3 mb-3"
-        style={{ borderBottom: "1px solid var(--border-subtle)" }}
-      >
-        <PhaseIndicator currentPhase={interview.current_phase} />
+    <div className="flex h-screen" style={{ margin: "calc(var(--content-padding-y) * -1) calc(var(--content-padding-x) * -1)" }}>
+      {/* Phase sidebar */}
+      <PhaseSidebar
+        currentPhase={interview.current_phase}
+        projectName={undefined}
+        startTime={interview.created_at}
+        messageCount={interview.messages.length}
+        isActive={isActive}
+        onEnd={handleEnd}
+        endLoading={endInterview.isPending}
+      />
 
-        {isActive && (
-          <Dialog>
-            <DialogTrigger
-              render={<Button variant="ghost" size="sm" />}
-            >
-              <span className="text-[13px]" style={{ color: "var(--foreground-muted)" }}>
-                结束面试
-              </span>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>确认结束面试？</DialogTitle>
-                <DialogDescription>
-                  结束后将无法继续回答，面试记录会保存到历史中。
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={handleEnd}>
-                  确认结束
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
+      {/* Chat area */}
+      <div className="flex flex-col flex-1 min-w-0">
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 md:px-6 space-y-1">
+          {interview.messages.map((msg) => (
+            <ChatMessage key={msg.id} message={msg} />
+          ))}
+          {isStreaming && streamingContent && (
+            <ChatMessage
+              message={{
+                id: "streaming",
+                session_id: id,
+                role: "interviewer",
+                content: streamingContent,
+                phase: interview.current_phase,
+                metadata_: null,
+                created_at: new Date().toISOString(),
+              }}
+            />
+          )}
+          {reviewReport && (
+            <div className="py-3">
+              <ReviewReportView report={reviewReport} />
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
 
-        {!isActive && (
-          <span
-            className="text-[12px] font-medium px-2 py-0.5 rounded"
-            style={{
-              color: "var(--foreground-subtle)",
-              background: "var(--surface-secondary)",
-            }}
-          >
-            面试已结束
-          </span>
-        )}
-      </div>
-
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto py-2 space-y-1">
-        {interview.messages.map((msg) => (
-          <ChatMessage key={msg.id} message={msg} />
-        ))}
-        {isStreaming && streamingContent && (
-          <ChatMessage
-            message={{
-              id: "streaming",
-              session_id: id,
-              role: "interviewer",
-              content: streamingContent,
-              phase: interview.current_phase,
-              metadata_: null,
-              created_at: new Date().toISOString(),
-            }}
+        {/* Input */}
+        <div
+          className="shrink-0 px-4 py-3 md:px-6"
+          style={{ borderTop: "1px solid var(--border-subtle)" }}
+        >
+          <ChatInput
+            onSend={handleSend}
+            disabled={!isActive}
+            loading={sendMessage.isPending || isStreaming}
           />
-        )}
-        {reviewReport && (
-          <div className="py-3">
-            <ReviewReportView report={reviewReport} />
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input Area */}
-      <div
-        className="pt-3 mt-1"
-        style={{ borderTop: "1px solid var(--border-subtle)" }}
-      >
-        <ChatInput
-          onSend={handleSend}
-          disabled={!isActive}
-          loading={sendMessage.isPending || isStreaming}
-        />
+        </div>
       </div>
     </div>
   );
